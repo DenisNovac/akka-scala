@@ -35,7 +35,9 @@ object Greeter {
 }
 ```
 
-- В этом коде определяются два типа сообщений, один для подачи актору команды на приветствие кого-то (Greet, он "принимаемый", так поведение создано так: `Behavior[Greet]`), а другой для отправки уведомления о том, что приветствие было выполнено.
+- В этом коде определяются два типа сообщений, один для подачи актору команды на приветствие кого-то, а другой для отправки уведомления о том, что приветствие было выполнено.
+
+Принимаемый тип определён в поведении класса: `Behavior[Greet]`. 
 
 - `Greet` содержит не только информацию о том, кому (whom) отправить приветствие, но и `ActorRef`, указывающий, какой актор использовал автор сообщения, чтобы Greeter мог отправить в него сообщение об успехе.
 
@@ -48,3 +50,59 @@ object Greeter {
 - Так как `replyTo` определен типа `ActorRef[Greeted]`, компилятор позволит нам посылать только сообщения этого типа. С другой стороны, сообщение типа `Greeted` может быть написано только актором-обработчиком Greet: `ActorRef[Greet]` (ну, или вложить туда можно только такой актор, в данном случае `context.self`).
 
 - Принимаемые типы сообщений актором и типы его ответов определяют *протокол*, используемый этим актором. В этом случае это простой запрос-ответ протокол, но акторы могут моделировать и по-настоящему сложные протоколы. Протокол вместе с поведением, реализующим его, образует объект `Greeter`.
+
+
+## Greeter bot actor
+
+```scala
+object GreeterBot {
+
+  def apply(max: Int): Behavior[Greeter.Greeted] = {
+    bot(0, max)
+  }
+
+  private def bot(greetingCounter: Int, max: Int): Behavior[Greeter.Greeted] =
+    Behaviors.receive { (context, message) =>
+      val n = greetingCounter + 1
+      context.log.info("Greeting {} for {}", n, message.whom)
+      if (n == max) {
+        Behaviors.stopped
+      } else {
+        message.from ! Greeter.Greet(message.whom, context.self)
+        bot(n, max)
+      }
+    }
+}
+```
+
+- Сразу же видно, что как поведение он принимает тип Greeted. `bot(0,max)` - это не вызов метода. Behavior всегда должен менять поведение в конце (возвращать behavior). Поэтому смотрим внутрь кода `bot`.
+
+- Метод bot прибавляет к полученному числу единицу, выводит сообщение и, если максимум не достигнут, меняет поведение на вызов bot уже с новой цифрой. Получается, изменение переменной достигается путём создания нового поведения, а не хранения переменной. Поэтому не нужны различные механизмы конкурентности вроде `synchronized`.
+
+
+## Greeter main actor
+
+```scala
+object GreeterMain {
+
+  final case class Start(name: String)
+
+  def apply(): Behavior[Start] =
+    Behaviors.setup { context =>
+      //#create-actors
+      val greeter = context.spawn(Greeter(), "greeter")
+      //#create-actors
+
+      Behaviors.receiveMessage { message =>
+        //#create-actors
+        val replyTo = context.spawn(GreeterBot(max = 3), message.name)
+        //#create-actors
+        greeter ! Greeter.Greet(message.name, replyTo)
+        Behaviors.same
+      }
+    }
+}
+```
+
+- Этот актор создаёт Greeter и GreeterBot и начинает интеракцию. Создание акторов будет обсуждено в следующем гайде.
+
