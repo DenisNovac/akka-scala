@@ -18,3 +18,4 @@ greeterMain ! Start("Charles")
 message.replyTo ! Greeted(message.whom, context.self)
 ```
 
+replyTo - это не метод от message. Это ссылка на какой-то актор в этом message. `!` - это метод самих акторов (а, точнее, ссылок на них типа `ActorRef`).
