@@ -13,5 +13,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.1",
   "com.typesafe.akka" %% "akka-http-testkit" % "10.1.11",
 
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.11",
   "org.specs2" %% "specs2-core" % "4.8.3"
 )

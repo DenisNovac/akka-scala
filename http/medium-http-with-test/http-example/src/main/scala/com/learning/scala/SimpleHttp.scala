@@ -14,7 +14,7 @@ object SimpleHttp extends App {
 
   val port = 8080
   val int = "localhost"
-  val route = HealthRoute.healthRoute ~ TestRoute.testRoute
+  val route = HealthRoute.healthRoute ~ TestRoute.testRoute ~ JsonRoute.jsonRoute
 
   // Роут для выбрасывания 404 в любой непонятной сиутации
   implicit def myRejectionHandler: RejectionHandler =
